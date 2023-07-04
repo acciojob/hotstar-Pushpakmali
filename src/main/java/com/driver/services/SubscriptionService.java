@@ -7,6 +7,7 @@ import com.driver.model.SubscriptionType;
 import com.driver.model.User;
 import com.driver.repository.SubscriptionRepository;
 import com.driver.repository.UserRepository;
+import jdk.internal.loader.AbstractClassLoaderValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -59,7 +60,30 @@ public class SubscriptionService {
         //In all other cases just try to upgrade the subscription and tell the difference of price that user has to pay
         //update the subscription in the repository
 
-        return null;
+        User user = userRepository.findById(userId).get();
+
+        if(user.getSubscription().toString().equals("ELITE")){
+            throw new Exception("Already the best Subscription");
+        }
+
+        Subscription subscription = user.getSubscription();
+        Integer previousFair = subscription.getTotalAmountPaid();
+        Integer currentFair;
+
+        if(subscription.getSubscriptionType().equals(SubscriptionType.BASIC)){
+            subscription.setSubscriptionType(SubscriptionType.PRO);
+            currentFair = previousFair + 300 +(50 * subscription.getNoOfScreensSubscribed());
+        }
+        else{
+            subscription.setSubscriptionType(SubscriptionType.ELITE);
+            currentFair = previousFair + 200 + (100 * subscription.getNoOfScreensSubscribed());
+        }
+
+        subscription.setTotalAmountPaid(currentFair);
+        user.setSubscription(subscription);
+        subscriptionRepository.save(subscription);
+
+        return currentFair - previousFair;
     }
 
     public Integer calculateTotalRevenueOfHotstar(){
@@ -67,7 +91,14 @@ public class SubscriptionService {
         //We need to find out total Revenue of hotstar : from all the subscriptions combined
         //Hint is to use findAll function from the SubscriptionDb
 
-        return null;
+        List<Subscription> subscriptions = subscriptionRepository.findAll();
+        Integer totalRevenue = 0;
+
+        for(Subscription subscription : subscriptions){
+            totalRevenue += subscription.getTotalAmountPaid();
+        }
+
+        return totalRevenue;
     }
 
 }
